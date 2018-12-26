@@ -1,3 +1,7 @@
+## download address:
+
+https://codeload.github.com/Etc170322/Law_Entities/zip/master
+
 ## A simple BiLSTM-CRF model for Chinese Named Entity Recognition
 
 This repository includes the code for buliding a very simple __character-based BiLSTM-CRF sequence labelling model__ for Chinese Named Entity Recognition task. Its goal is to recognize three types of Named Entity: PERSON, LOCATION and ORGANIZATION.
