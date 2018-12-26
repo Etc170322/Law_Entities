@@ -6,95 +6,19 @@
 @time: 2018/08/08
 """
 
-import pymysql
+
 import pprint
 import json
-
-
 from pymongo import MongoClient
 
 
-def get_addr():
-    conn = pymysql.connect(host='localhost',
-                           # host='192.168.11.251',
-                           # host='data.npacn.com',
-                           port=3306,
-                           user='root',
-                           password='Aa123456',
-                           # password='youtong123',
-                           # password='mysql',
-                           database='zhizhuxia',
-                           # database='sipai_backup',
-                           charset='utf8',
-                           cursorclass=pymysql.cursors.DictCursor)  # 默认返回元祖，加上这个参数返回的是字典结构
 
 
-    with conn.cursor() as cur1:
 
-        # sql1 = """SELECT id, doc_assets FROM sm_document_copy WHERE doc_assets not like "%\'name\': None%" limit 100;"""
-        sql1 = """SELECT doc_result from doc_test limit 10"""
-
-        cur1.execute(sql1)
-        #设定游标从第一个开始移动
-        cur1.scroll(0, mode='absolute')
-        #获取此字段的所有信息
-        results = cur1.fetchall()
-        # print(results)
-        yield results
-
-def conn():
-    conn = pymysql.connect(  # host='localhost',
-        # host='192.168.11.251',
-        host='data.npacn.com',
-        port=3306,
-        user='youtong',
-        password='duc06LEQpgoP',
-        # password='youtong123',
-        # password='mysql',
-        database='sipai',
-        # database='sipai_backup',
-        charset='utf8',
-        cursorclass=pymysql.cursors.DictCursor)  # 默认返回元祖，加上这个参数返回的是字典结构
-    return conn
-
-
-# 从数据库获取数据  mysql
-def get_datas():
-    one_data = {}   # 存放其中一条数据
-    result_list = []
-    db = pymysql.Connect("data.npacn.com", "youtong", "duc06LEQpgoP", "sipai")    # 阿里云mysql
-    # db = pymysql.Connect("localhost", "root", "Aa123456", "zhizhuxia")
-    cursor = db.cursor()
-    sql = "SELECT uuid, obligors, creditors, doc_result from sm_document where 661643 < uuid "
-    # sql = "SELECT uuid, obligors, creditors, doc_result from sm_document where 280000 < uuid and uuid <= 300000"  # 线程2 结束
-    # sql = "SELECT uuid, obligors, creditors, doc_result from sm_document where 376937 < uuid"      # 正在运行
-    # sql = "SELECT uuid, obligors, creditors, doc_result FROM doc_test limit 1"   #  obligors 原告    creditors 被告
-    # sql = "SELECT doc_result from doc_test where id like '%DE%'"
-    # sql = "SELECT doc_content from doc_test where uuid=666"
-    # sql = "SELECT uuid, obligors, creditors, doc_result from sm_document"    # 阿里云数据库查询
-    try:
-        cursor.execute(sql)
-        results = cursor.fetchall()
-        # for result in results:
-            # demo_sent = result[0]
-            # text_sent = split_sentence.split_sentence_thr(demo_sent)
-            # for text in text_sent:
-            #     result_list.append(text)
-
-                # to_str = str(text)
-                # if text == '' or text.isspace():
-                #     print('See you next time!')
-                #     break
-                # else:
-                #     text = list(text.strip())
-        # print(result_list)
-        return results
-    except Exception as e:
-        print("Exception is", e)
-    db.close()
 
 # 从数据库获取数据  mongo
-uri = 'mongodb://' + 'root' + ':' + '123456' + '@' + 'test.npacn.com' + ':' + '8017' +'/'+ 'itslaw'
+# uri = 'mongodb://' + 'root' + ':' + '123456' + '@' + 'test.npacn.com' + ':' + '8017' +'/'+ 'itslaw'
+uri = 'mongodb://' + ' ' + ':' + ' ' + '@' + 'test.npacn.com' + ':' + '20000' +'/'+ 'testdb'
 client = MongoClient(uri)
 def get_MONGO_data():
     '''
@@ -103,28 +27,37 @@ def get_MONGO_data():
     '''
     datas = []
     try:
-        db = client.itslaw      # 连接所需要的数据库
-        collection = db.itslaw_collection    # collection名
+        db = client.testdb      # 连接所需要的数据库
+        collection = db.sichuan    # collection名
         print('Connect Successfully')
         # 查询数据
-        data_result = collection.find({"content.caseType":"行政"}).limit(1)
-        # data_result = collection.find({"content.caseType": "行政"}).limit(10)
-        # data_result = collection.find({"content.caseType": "民事"}).limit(10000)
+        data_result = collection.find().limit(100000)
         for item in data_result:
-            # datas = []
-            result = {}
-            keywords = []
-            addr = []
+            result = {'judge_text':'',
+                      'addr':'',
+                      'pro':'',
+                      'opp':''}
+            pros = []
+            opps = []
+            judge_text = []
+            result['judge_text'] = judge_text
             judgementId = item['judgementId']   # 判决文书id   唯一标示
+            result['judgementId'] = judgementId
             if 'doc_province' in item.keys() and 'doc_city' in item.keys():
                 addr = str(item['doc_province']) + str(item['doc_city'])  # 案件的归属地
-
+                result['addr'] = addr
             # 获取罪名
             if 'reason' in item['content'].keys():
                 charge = item['content']['reason']['name']
+                result['charge'] = charge
+            else:
+                result['charge'] = ''
             # 获取关键词
             if 'keywords' in item['content'].keys():
                 keywords = item['content']['keywords']
+                result['keywords'] = keywords
+            else:
+                result['keywords'] = ''
             # 获取法院信息
             if 'court' in item['content'].keys():
                 court = item['content']['court']['name']
@@ -133,31 +66,30 @@ def get_MONGO_data():
                 proponents = item['content']['proponents']  # 原告
                 for i in range(len(proponents)):
                     pro = proponents[i]['name']
-            # 获取被告
+                    pros.append(pro)
+                result['proponents'] = pros
+            else:
+                result['proponents'] = ''
+            # # 获取被告
             if 'opponents' in item['content'].keys():
                 opponents = item['content']['opponents']   # 被告
                 for i in range(len(opponents)):
                     opp = opponents[i]['name']
+                    opps.append(opp)
+                result['opponents'] = opps
+            else:
+                result['opponents'] = ''
 
             # 获取当事人及判决等信息
             detail = item['content']['paragraphs']  # 这是一个list
             for i in range(len(detail)):
-                # judge_text = []
                 if 'typeText' in detail[i].keys():
-
-                    if detail[i]['typeText'] == '裁判结果':
-                        judge_text = []
+                    if detail[i]['typeText'] == '裁判结果' or detail[i]['typeText'] == '本院认为':
                         texts = detail[i]['subParagraphs']
                         for i in range(len(texts)):
                             judge_text.append(texts[i]['text'])   # 判决文本内容，list形式存储
-            result['judgementId'] = judgementId
-            result['addr'] = addr
-            result['charge'] = charge
-            result['judge_text'] = judge_text
-            result['keywords'] = keywords
+                        result['judge_text'] = judge_text
             result['court'] = court
-            result['proponents'] = pro
-            result['opponents'] = opp
             # pprint.pprint(result)
             datas.append(result)
     except Exception as e:
@@ -171,26 +103,15 @@ def del_MONGO_data(judgementId):
     :param judgementId:
     :return:
     '''
-    db = client.itslaw  # 连接所需要的数据库
-    collection = db.itslaw_collection  # collection名
-    del_data = collection.delete_one({"judgementId": judgementId})
-    # print('del success:', del_data)
+    try:
+        db = client.testdb  # 连接所需要的数据库
+        collection = db.sichuan  # collection名
+        collection.delete_one({"judgementId": judgementId})
+    except Exception as e:
+        print("Error is ", e)
 
-
-def write_data():
-    db = pymysql.Connect("localhost", "root", "Aa123456", "zhizhuxia")
-    cursor = db.cursor()
-    insert_ner_result = ("INSERT INTO doc_result(per, loc, org, re_loc)" "VALUES(%s, %s, %s, %s)")
-
-    cursor.execute(insert_ner_result)
-
-def write_to_mysql():
-    pass
-
-def write_to_mongo():
-    pass
 
 # get_datas()
-get_MONGO_data()
-# ju_id = 'bbebc4ba-a6a0-416e-a716-4c1205fa17d6'
+# sget_MONGO_data()
+# ju_id = 'b62dd753-3586-42ff-b513-1b76034774e6'
 # del_MONGO_data(ju_id)

@@ -20,27 +20,21 @@ import proprecess_money
 from Enext_model import BiLSTM_CRF
 from utils import str2bool, get_logger, get_entity, get_MON_entity
 from data import read_corpus, read_dictionary, tag2label, random_embedding
-from get_data import get_datas, get_MONGO_data, del_MONGO_data
+from get_data import get_MONGO_data, del_MONGO_data
 
-## Session configuration
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # 设置只用一块显卡
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # default: 0
+
+
+
 config = tf.ConfigProto()
 # config.gpu_options.allow_growth = True
-config.gpu_options.per_process_gpu_memory_fraction = 0.2 # need ~700MB GPU memory
-
-# 数据库操作
-# db = pymysql.Connect("localhost", "root", "Aa123456", "zhizhuxia")
-# print('Connect successful')
-# cursor = db.cursor()
-# redis = redis.Redis(host='127.0.0.1', port=6379)
+config.gpu_options.per_process_gpu_memory_fraction = 0.5
 
 # 连接ES
 es = Elasticsearch(
-    # ['test.npacn.com'],  # 192.168.11.251
-    # http_auth=('admin', 'gXvBgE43&B$8'),
-    ['192.168.11.211'],
-    port=9200,
+     ['test.npacn.com:21180'],  #192.168.11.251
+     http_auth=('admin', 'gXvBgE43&B$8'),
+     #['192.168.11.211'],
+     #port=9200,
     timeout= 30,
 )
 # 创建索引
@@ -54,7 +48,7 @@ text_list = []   # 创建一个tuple，用来装分句后的数据
 parser = argparse.ArgumentParser(description='BiLSTM-CRF for Chinese NER task')
 parser.add_argument('--train_data', type=str, default='data', help='train data source')
 parser.add_argument('--test_data', type=str, default='data', help='test data source')
-parser.add_argument('--batch_size', type=int, default=32, help='#sample of each minibatch')
+parser.add_argument('--batch_size', type=int, default=256, help='#sample of each minibatch')
 parser.add_argument('--epoch', type=int, default=20, help='#epoch of training')
 parser.add_argument('--hidden_dim', type=int, default=300, help='#dim of hidden state')
 parser.add_argument('--optimizer', type=str, default='Adam', help='Adam/Adadelta/Adagrad/RMSProp/Momentum/SGD')
@@ -67,7 +61,7 @@ parser.add_argument('--pretrain_embedding', type=str, default='random', help='us
 parser.add_argument('--embedding_dim', type=int, default=300, help='random init char embedding_dim')
 parser.add_argument('--shuffle', type=str2bool, default=True, help='shuffle training data before each epoch')
 parser.add_argument('--mode', type=str, default='demo', help='train/test/demo')
-parser.add_argument('--demo_model', type=str, default='1535444492', help='model for test and demo')
+parser.add_argument('--demo_model', type=str, default='1545099085', help='model for test and demo')
 args = parser.parse_args()
 
 
@@ -138,7 +132,7 @@ elif args.mode == 'test':
 elif args.mode == 'demo':
 
     # 这里指定了模型路径
-    model_path = './1535444492/checkpoints'
+    model_path = './data_save/1545099085/checkpoints'
     ckpt_file = tf.train.latest_checkpoint(model_path)
     print('>>>>>>>>>>>',ckpt_file)
     paths['model_path'] = ckpt_file
@@ -178,7 +172,7 @@ elif args.mode == 'demo':
                     print('PER: {}\nLOC: {}\nORG: {}\nMON: {}\n'.format(PER, LOC, ORG, MON))
 
                     # 将数据写入es
-                    es.index(index='zhizhuxia', doc_type='ner_type',
+                    es.index(index='zhizhuxia_sichuan', doc_type='ner_type',
                              body={'addr': addr,
                                    'charge': charge,
                                    'judgementId': judgementId,
